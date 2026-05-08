@@ -50,3 +50,14 @@ jobs:
         env:
           UV_FROZEN: "true"
         run: uv build
+
+      - name: Check distribution metadata
+        env:
+          UV_FROZEN: "true"
+        run: uvx twine check dist/*
+
+      - name: Verify console scripts
+        run: |
+          uv run --frozen clawbench --help
+          uv run --frozen clawbench-run --help
+          uv run --frozen clawbench-batch --help

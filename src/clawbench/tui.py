@@ -1489,6 +1489,13 @@ def _fix_engine(engine: str, status: str, detail: str) -> bool:
 def main() -> None:
     global STYLE, ACCENT, ACCENT2
 
+    if any(arg in {"-h", "--help"} for arg in sys.argv[1:]):
+        console.print("Usage: clawbench")
+        console.print()
+        console.print("Launch the interactive ClawBench TUI.")
+        console.print("For non-interactive runs, use clawbench-run or clawbench-batch.")
+        return
+
     _require_tty()
     ensure_workspace_templates()
     os.chdir(WORKSPACE_ROOT)

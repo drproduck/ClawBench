@@ -3,7 +3,7 @@ requires = ["hatchling>=1.27"]
 build-backend = "hatchling.build"
 
 [project]
-name = "clawbench"
+name = "clawbenchmark"
 version = "0.2.0"
 description = "Benchmarking framework for evaluating AI web agents on real-world online tasks"
 readme = "README.md"
@@ -15,6 +15,12 @@ dependencies = [
     "questionary>=2.0",
     "rich>=13.0",
 ]
+
+[project.urls]
+Homepage = "https://claw-bench.com"
+Repository = "https://github.com/reacher-z/ClawBench"
+Issues = "https://github.com/reacher-z/ClawBench/issues"
+Paper = "https://arxiv.org/abs/2604.08523"
 
 [project.scripts]
 clawbench = "clawbench.tui:main"
