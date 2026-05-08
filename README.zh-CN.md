@@ -16,8 +16,8 @@
 [![Discord](https://img.shields.io/badge/Discord-%E5%8A%A0%E5%85%A5-5865F2?style=flat-square&logo=discord&logoColor=white)](https://discord.gg/clawbench)
 [![Codespaces](https://img.shields.io/badge/Codespaces-%E4%B8%80%E9%94%AE%E6%89%93%E5%BC%80-181717?style=flat-square&logo=github&logoColor=white)](https://codespaces.new/reacher-z/ClawBench?quickstart=1)
 
-[![PyPI downloads](https://img.shields.io/pypi/dm/clawbench?style=flat-square&logo=pypi&logoColor=white&color=3775A9&label=PyPI%20downloads)](https://pypi.org/project/clawbench/)
-[![PyPI version](https://img.shields.io/pypi/v/clawbench?style=flat-square&logo=pypi&logoColor=white&color=3775A9)](https://pypi.org/project/clawbench/)
+[![PyPI downloads](https://img.shields.io/pypi/dm/clawbenchmark?style=flat-square&logo=pypi&color=3775A9&logoColor=white&label=PyPI%20downloads)](https://pypi.org/project/clawbenchmark/)
+[![PyPI version](https://img.shields.io/pypi/v/clawbenchmark?style=flat-square&logo=pypi&color=3775A9&logoColor=white)](https://pypi.org/project/clawbenchmark/)
 [![Last commit](https://img.shields.io/github/last-commit/reacher-z/ClawBench?style=flat-square&logo=github&logoColor=white)](https://github.com/reacher-z/ClawBench/commits/main)
 [![Contributors](https://img.shields.io/github/contributors/reacher-z/ClawBench?style=flat-square&logo=github&logoColor=white)](https://github.com/reacher-z/ClawBench/graphs/contributors)
 [![Commit activity](https://img.shields.io/github/commit-activity/m/reacher-z/ClawBench?style=flat-square&logo=github&logoColor=white)](https://github.com/reacher-z/ClawBench/graphs/commit-activity)
@@ -125,7 +125,16 @@ git clone https://github.com/reacher-z/ClawBench.git && cd ClawBench && ./run.sh
 
 # <img src="static/icons/person.svg" width="28" height="28"> 手动快速开始
 
-克隆仓库并运行根目录 `uv` 包入口:
+日常使用建议直接从 PyPI 安装 ClawBench:
+
+```bash
+uv tool install clawbenchmark
+```
+
+也可以使用 `pipx install clawbenchmark` 或 `python -m pip install clawbenchmark`。
+安装后的命令仍然是 `clawbench`、`clawbench-run` 和 `clawbench-batch`。
+
+如果你想要更细粒度的控制或参与贡献，可以克隆仓库并运行根目录 `uv` 包入口:
 
 ```bash
 git clone https://github.com/reacher-z/ClawBench.git && cd ClawBench && ./run.sh
@@ -181,7 +190,19 @@ podman machine start
 
 </details>
 
-**1. 配置模型** —— 一次性设置:
+**1. 配置模型** —— 一次性设置。
+
+如果你是从 PyPI 安装的，请在希望保存运行结果和可编辑配置的目录中运行
+`clawbench`。首次启动时会在本地创建 `models/` 模板；你可以在 TUI 中添加模型，
+也可以直接编辑配置文件:
+
+```bash
+clawbench
+$EDITOR models/models.yaml
+```
+
+如果你是从源码 checkout 运行:
+
 ```bash
 cp models/models.example.yaml models/models.yaml
 $EDITOR models/models.yaml
@@ -197,9 +218,12 @@ $EDITOR models/models.yaml
 > [!TIP]
 > **推荐 &rarr; 交互式 TUI** &nbsp; 引导式选择模型 + 测试用例
 > ```bash
-> uv run clawbench
+> clawbench         # PyPI 安装
+> uv run clawbench  # 源码 checkout
 > ```
-> 需要交互式终端。管道 / CI / 非 TTY 环境请直接用 `uv run clawbench-run` 或 `uv run clawbench-batch`。
+> 如果是从 PyPI 安装，请直接运行 `clawbench`。需要交互式终端。
+> 管道 / CI / 非 TTY 环境请直接用 `clawbench-run` 或 `clawbench-batch`；
+> 如果是源码 checkout，请在命令前加 `uv run`。
 
 **(b) 指定模型跑单个任务:**
 ```bash
