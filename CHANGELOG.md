@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.3.0] - 2026-05-09
+### Added
+- Added support for the **pi** harness — [Pi coding agent](https://github.com/earendil-works/pi/tree/main/packages/coding-agent) + [`pi-browser-harness`](https://github.com/amankumarsingh77/pi-browser-harness)
+
 ## [0.2.2] - 2026-05-08
 ### Changed
 - Migrated the PyPI package to `clawbench-eval` instead of `clawbenchmark`.
