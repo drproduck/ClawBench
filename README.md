@@ -85,7 +85,7 @@ order food, book travel, apply for jobs, write reviews, manage projects.<br/>
 <td width="25%" align="center" valign="top">
 
 🏆 **See scores**<br/>
-[Live leaderboard](https://huggingface.co/spaces/NAIL-Group/clawbench-leaderboard)<br/>
+[Live leaderboard](https://huggingface.co/spaces/TIGER-Lab/ClawBench)<br/>
 <sub>Pick a corpus (v1 / v2)</sub>
 
 </td>
@@ -99,7 +99,7 @@ order food, book travel, apply for jobs, write reviews, manage projects.<br/>
 <td width="25%" align="center" valign="top">
 
 📊 **Browse 283 tasks**<br/>
-[Task explorer](https://claw-bench.com/v2)<br/>
+[Task explorer](https://claw-bench.com/tasks)<br/>
 <sub>Search · filter · category</sub>
 
 </td>
@@ -115,7 +115,7 @@ order food, book travel, apply for jobs, write reviews, manage projects.<br/>
 <td align="center" valign="top">
 
 🎬 **Re-grade old runs**<br/>
-[V1 raw traces](https://huggingface.co/datasets/NAIL-Group/ClawBenchV1Trace)<br/>
+[V1](https://huggingface.co/datasets/NAIL-Group/ClawBenchV1Trace) · [V2](https://huggingface.co/datasets/TIGER-Lab/ClawBenchV2Trace) raw traces<br/>
 <sub>5 layers per (task × model)</sub>
 
 </td>
@@ -145,7 +145,8 @@ order food, book travel, apply for jobs, write reviews, manage projects.<br/>
 
 ## <img src="static/icons/bullhorn.svg" width="20" height="20"> News
 
-- **[2026.05.11]** <img src="static/icons/chart-bar.svg" width="14" height="14"> &nbsp;V2 leaderboard ships — first 6 models scored end-to-end with two-stage rubric (interception + LLM judge). Top so far: `glm-5.1 / hermes` at **18.5% reward / 48.5% intercepted**. See [`claw-bench.com/leaderboard`](https://claw-bench.com/leaderboard), scoring details in [`eval/scoring.md`](eval/scoring.md), live data on the [HF Space](https://huggingface.co/spaces/NAIL-Group/clawbench-leaderboard).
+- **[2026.05.12]** <img src="static/icons/rocket.svg" width="14" height="14"> &nbsp;Canonical leaderboard moved to **[`TIGER-Lab/ClawBench`](https://huggingface.co/spaces/TIGER-Lab/ClawBench)** — Gradio 3-tab Space (Leaderboard / About / Submit) modeled after [`TIGER-Lab/MMLU-Pro`](https://huggingface.co/spaces/TIGER-Lab/MMLU-Pro). All HF assets bundled in the **[ClawBench collection](https://huggingface.co/collections/TIGER-Lab/clawbench-6a0247d04680f475038797d4)** — paper + V1/V2 dataset + V1Trace + V2Trace + Space. Ranking corrected: partial-batch results no longer outrank complete ones with lower reward. ([`NAIL-Group/clawbench-leaderboard`](https://huggingface.co/spaces/NAIL-Group/clawbench-leaderboard) remains live as the historical mirror.)
+- **[2026.05.11]** <img src="static/icons/chart-bar.svg" width="14" height="14"> &nbsp;V2 leaderboard ships — first 6 models scored end-to-end with two-stage rubric (interception + LLM judge). Top so far: `glm-5.1 / hermes` at **18.5% reward / 48.5% intercepted**. See [`claw-bench.com/leaderboard`](https://claw-bench.com/leaderboard), scoring details in [`eval/scoring.md`](eval/scoring.md), live data on the [HF Space](https://huggingface.co/spaces/TIGER-Lab/ClawBench).
 - **[2026.05.11]** <img src="static/icons/layer-group.svg" width="14" height="14"> &nbsp;Companion trace dataset **[ClawBenchV2Trace](https://huggingface.co/datasets/NAIL-Group/ClawBenchV2Trace)** going live — same 5-layer trace bundle per run as V1Trace, rolling as new V2 evaluations land.
 - **[2026.05.09]** <img src="static/icons/globe.svg" width="14" height="14"> Added support for the **pi** harness — Pi coding agent + `pi-browser-harness`.
 - **[2026.05.09]** <img src="static/icons/layer-group.svg" width="14" height="14"> &nbsp;Released **[ClawBenchV1Trace](https://huggingface.co/datasets/NAIL-Group/ClawBenchV1Trace)** — the full execution trace for every V1 model run: session recording (`recording.mp4`), HTTP traffic (`requests.jsonl`), browser actions (`actions.jsonl`), agent reasoning (`agent-messages.jsonl`), and the intercepted final request (`interception.json`). Anyone can reproduce, re-grade, or post-hoc analyze our results. Pairs with the existing [task-definition dataset](https://huggingface.co/datasets/NAIL-Group/ClawBench).
@@ -469,6 +470,10 @@ All four must hold for a **PASS**. Miss any one and it's a **FAIL** with evidenc
 | [SWE-bench](https://www.swebench.com)                       | Software engineering | GitHub repos             | 2,294      | Non-code; everyday consumer workflows                 |
 | [BrowserGym](https://github.com/ServiceNow/BrowserGym)      | Web agents           | Headless sandbox         | —          | Cloud-parity; records real user journeys              |
 | [Mind2Web](https://github.com/OSU-NLP-Group/Mind2Web)       | Web navigation       | Static traces            | 2,350      | Dynamic live websites, not replayed traces            |
+| [Online-Mind2Web](https://github.com/OSU-NLP-Group/Online-Mind2Web) | Live web navigation | Real websites | 300        | 4× more tasks (V1+V2: 283 vs 300 — comparable), with full 5-layer recordings |
+| [VisualWebArena](https://jykoh.com/vwa)                     | Visual web tasks    | Self-hosted (3 sites)   | 910        | Real websites with full visual layer (vs 3 hosted apps) |
+| [WebVoyager](https://github.com/MinorJerry/WebVoyager)      | Real-website nav    | Real websites (15)      | 643        | Interception-graded vs LLM-judge-only, 144 sites covered |
+| [TheAgentCompany](https://the-agent-company.com)            | Office workflows    | Self-hosted (6 platforms) | 175      | Consumer everyday tasks instead of enterprise sandbox |
 
 ClawBench's niche: **live consumer websites, everyday tasks, end-to-end recording**. If you want a controlled sandbox or replayed traces, the projects above are excellent. If you want to know whether your agent can actually order food or book a flight *today*, this is the benchmark for that.
 
