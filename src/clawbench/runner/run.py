@@ -951,10 +951,10 @@ def validate_task_data(task: Any, task_file: Path) -> dict:
         raise ValueError("task eval_schema.url_pattern must be a string")
     if not isinstance(eval_schema.get("method"), str):
         raise ValueError("task eval_schema.method must be a string")
-    try:
-        time_limit = float(task.get("time_limit"))
-    except (TypeError, ValueError):
+    raw_time_limit = task.get("time_limit")
+    if not isinstance(raw_time_limit, int | float) or isinstance(raw_time_limit, bool):
         raise ValueError("task time_limit must be a number") from None
+    time_limit = float(raw_time_limit)
     if time_limit <= 0:
         raise ValueError("task time_limit must be greater than 0")
     return task
@@ -1025,6 +1025,7 @@ def collect_run_metrics(output_dir: Path) -> dict[str, Any]:
     derived_api_call_keys: set[str] = set()
     derived_api_start_keys: set[tuple[str, str, str]] = set()
     derived_api_response_start_keys: set[tuple[str, str, str]] = set()
+    browser_use_model_outputs = 0
     if messages_file.exists():
         try:
             with messages_file.open(errors="replace") as f:
@@ -1037,6 +1038,8 @@ def collect_run_metrics(output_dir: Path) -> dict[str, Any]:
                         continue
                     if not isinstance(event, dict):
                         continue
+                    if isinstance(event.get("model_output"), dict):
+                        browser_use_model_outputs += 1
                     if event.get("type") == "session_meta" and isinstance(
                         event.get("api_call_count"), int
                     ):
@@ -1097,6 +1100,8 @@ def collect_run_metrics(output_dir: Path) -> dict[str, Any]:
         for key in derived_api_start_keys - derived_api_response_start_keys:
             derived_api_call_keys.add("message_start|" + "|".join(key))
         metrics["api_calls"] = len(derived_api_call_keys)
+    elif browser_use_model_outputs:
+        metrics["api_calls"] = browser_use_model_outputs
 
     if metrics["api_or_credit_evidence"] is None and data_dir.exists():
         for log_file in data_dir.glob("*.log"):
@@ -1189,7 +1194,8 @@ def make_run_meta(
     extra_info_warnings: list[str] | None = None,
 ) -> dict[str, Any]:
     task = task if isinstance(task, dict) else {}
-    metadata = task.get("metadata") if isinstance(task.get("metadata"), dict) else {}
+    raw_metadata = task.get("metadata")
+    metadata: dict[str, Any] = raw_metadata if isinstance(raw_metadata, dict) else {}
     if args.human:
         model = "human"
         harness = "human"
