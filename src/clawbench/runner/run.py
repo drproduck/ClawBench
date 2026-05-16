@@ -1025,6 +1025,7 @@ def collect_run_metrics(output_dir: Path) -> dict[str, Any]:
     derived_api_call_keys: set[str] = set()
     derived_api_start_keys: set[tuple[str, str, str]] = set()
     derived_api_response_start_keys: set[tuple[str, str, str]] = set()
+    browser_use_model_outputs = 0
     if messages_file.exists():
         try:
             with messages_file.open(errors="replace") as f:
@@ -1037,6 +1038,8 @@ def collect_run_metrics(output_dir: Path) -> dict[str, Any]:
                         continue
                     if not isinstance(event, dict):
                         continue
+                    if isinstance(event.get("model_output"), dict):
+                        browser_use_model_outputs += 1
                     if event.get("type") == "session_meta" and isinstance(
                         event.get("api_call_count"), int
                     ):
@@ -1097,6 +1100,8 @@ def collect_run_metrics(output_dir: Path) -> dict[str, Any]:
         for key in derived_api_start_keys - derived_api_response_start_keys:
             derived_api_call_keys.add("message_start|" + "|".join(key))
         metrics["api_calls"] = len(derived_api_call_keys)
+    elif browser_use_model_outputs:
+        metrics["api_calls"] = browser_use_model_outputs
 
     if metrics["api_or_credit_evidence"] is None and data_dir.exists():
         for log_file in data_dir.glob("*.log"):
