@@ -106,6 +106,11 @@ DATASETS = {
         "summary": "V1 Lite (test-cases/v1-lite)",
         "cases_dir": "test-cases/v1-lite",
     },
+    "claw-eval": {
+        "label": "Claw-Eval port  (test-cases/claw-eval)",
+        "summary": "Claw-Eval port (test-cases/claw-eval)",
+        "cases_dir": "test-cases/claw-eval",
+    },
 }
 
 API_TYPES = [
@@ -359,8 +364,13 @@ def _case_sort_key(case: str) -> tuple[int, int, str]:
 
 def load_cases(cases_dir_name: str = "test-cases") -> list[str]:
     cases_dir = ASSET_ROOT / cases_dir_name
+    flat_cases = [
+        p.stem
+        for p in cases_dir.glob("*.json")
+        if p.name not in {"eligibility-report.json"}
+    ]
     cases = sorted(
-        (p.parent.name for p in cases_dir.glob("*/task.json")),
+        [*(p.parent.name for p in cases_dir.glob("*/task.json")), *flat_cases],
         key=_case_sort_key,
     )
     if not cases:

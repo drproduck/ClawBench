@@ -188,8 +188,8 @@ def load_runtime_env() -> dict[str, str]:
     return env
 
 
-def resolve_test_case_dir(path: Path) -> Path:
-    """Resolve a case path from cwd/workspace first, then bundled assets."""
+def resolve_test_case_path(path: Path) -> Path:
+    """Resolve a case directory or task JSON path from cwd/workspace first, then bundled assets."""
     if path.is_absolute():
         return path
     candidates = [
@@ -201,6 +201,20 @@ def resolve_test_case_dir(path: Path) -> Path:
         if candidate.exists():
             return candidate.resolve()
     return (Path.cwd() / path).resolve()
+
+
+def resolve_test_case_dir(path: Path) -> Path:
+    """Resolve a case directory from cwd/workspace first, then bundled assets."""
+    resolved = resolve_test_case_path(path)
+    return resolved.parent if resolved.is_file() else resolved
+
+
+def resolve_task_file(path: Path) -> tuple[Path, Path, str]:
+    """Return (task_dir, task_file, case_name) for directory or flat task JSON input."""
+    resolved = resolve_test_case_path(path)
+    if resolved.is_file():
+        return resolved.parent, resolved, resolved.stem
+    return resolved, resolved / "task.json", resolved.name
 
 
 def load_model_config(model: str) -> dict:
@@ -1404,8 +1418,7 @@ def main():
     do_upload = hf_upload_enabled(hf_env) and not args.no_upload
 
     start_time = time.time()
-    task_dir = resolve_test_case_dir(args.test_case_dir)
-    case_name = task_dir.name
+    task_dir, task_file, case_name = resolve_task_file(args.test_case_dir)
     ts = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
 
     model_cfg: dict | None = None
@@ -1434,7 +1447,6 @@ def main():
 
     # Load and validate task after output_dir exists so task-data failures
     # still leave a run-meta.json for batch/report classification.
-    task_file = task_dir / "task.json"
     try:
         if not task_file.exists():
             raise FileNotFoundError(f"{task_file} not found")
@@ -1618,6 +1630,11 @@ def main():
                     judge_cfg.get("model", args.judge),
                     instruction_text,
                     intercept_blob,
+                    judge_context=(
+                        task.get("judge_context")
+                        if isinstance(task.get("judge_context"), dict)
+                        else None
+                    ),
                 )
                 (output_dir / "judge.json").write_text(
                     json.dumps(judge_result, indent=2, ensure_ascii=False)

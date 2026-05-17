@@ -46,6 +46,7 @@ CASE_SUITES = {
     "v1": "test-cases/v1",
     "v2": "test-cases/v2",
     "v1-lite": "test-cases/v1-lite",
+    "claw-eval": "test-cases/claw-eval",
 }
 DEFAULT_CASES_SUITE = "v1"
 
@@ -79,8 +80,8 @@ def discover_models(patterns: list[str] | None, all_models: bool) -> list[str]:
 
 
 def _case_id(d: Path) -> int | None:
-    """Extract the numeric task ID from V1/V2 case directory names."""
-    match = re.match(r"^(?:v\d+-)?(\d+)", d.name)
+    """Extract the numeric task ID from V1/V2/flat Claw-Eval case names."""
+    match = re.match(r"^(?:v\d+-|ce-)?[A-Za-z]?(\d+)", d.stem)
     if not match:
         return None
     return int(match.group(1))
@@ -102,6 +103,18 @@ def _resolve_cases_dir(cases_dir: str | Path) -> Path:
     return path
 
 
+def _flat_case_files(base: Path) -> list[Path]:
+    return [
+        p
+        for p in base.glob("*.json")
+        if p.is_file() and p.name not in {"eligibility-report.json"}
+    ]
+
+
+def _all_cases_in(base: Path) -> list[Path]:
+    return [p.parent for p in base.glob("*/task.json")] + _flat_case_files(base)
+
+
 def discover_cases(
     patterns: list[str] | None,
     all_cases: bool,
@@ -110,7 +123,7 @@ def discover_cases(
 ) -> list[Path]:
     base = _resolve_cases_dir(cases_dir)
     if all_cases:
-        dirs = sorted((p.parent for p in base.glob("*/task.json")), key=_case_sort_key)
+        dirs = sorted(_all_cases_in(base), key=_case_sort_key)
     elif patterns:
         dirs = []
         for pat in patterns:
@@ -125,8 +138,10 @@ def discover_cases(
             for d in expanded:
                 if d.is_dir() and (d / "task.json").exists():
                     dirs.append(d)
+                elif d.is_file() and d.suffix == ".json":
+                    dirs.append(d)
     elif case_range:
-        dirs = sorted((p.parent for p in base.glob("*/task.json")), key=_case_sort_key)
+        dirs = sorted(_all_cases_in(base), key=_case_sort_key)
     else:
         print("ERROR: provide --cases, --all-cases, or --case-range")
         sys.exit(1)
@@ -139,7 +154,7 @@ def discover_cases(
     dirs = sorted(set(dirs), key=_case_sort_key)
     if not dirs:
         print(
-            "ERROR: no test-case directories matched "
+            "ERROR: no test-case paths matched "
             f"(cases_dir={base}, patterns={patterns}, range={case_range})"
         )
         sys.exit(1)

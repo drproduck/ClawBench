@@ -43,7 +43,32 @@ Reply with ONLY a single-line JSON object, no markdown fences, no extra prose:
 """
 
 
-def _build_user_msg(instruction: str, intercept: dict[str, Any]) -> str:
+def _context_text(judge_context: dict[str, Any] | None) -> str:
+    if not isinstance(judge_context, dict):
+        return ""
+    parts: list[str] = []
+    rubric = judge_context.get("rubric")
+    if isinstance(rubric, str) and rubric.strip():
+        parts.append(f"Rubric:\n{rubric.strip()[:6000]}")
+    reference = judge_context.get("reference_solution")
+    if isinstance(reference, str) and reference.strip():
+        parts.append(f"Reference solution:\n{reference.strip()[:6000]}")
+    source = judge_context.get("source_task_yaml")
+    if isinstance(source, str) and source.strip():
+        parts.append(f"Source task YAML:\n{source.strip()[:6000]}")
+    if not parts:
+        return ""
+    return (
+        "\n\nHIDDEN JUDGE CONTEXT (not shown to the agent; use only for grading):\n"
+        + "\n\n".join(parts)
+    )
+
+
+def _build_user_msg(
+    instruction: str,
+    intercept: dict[str, Any],
+    judge_context: dict[str, Any] | None = None,
+) -> str:
     req = intercept.get("request") or {}
     body = req.get("body")
     if isinstance(body, (dict, list)):
@@ -56,6 +81,7 @@ def _build_user_msg(instruction: str, intercept: dict[str, Any]) -> str:
         f"  url: {req.get('url')}\n"
         f"  method: {req.get('method')}\n"
         f"  body:\n{body_str}\n"
+        f"{_context_text(judge_context)}\n"
     )
 
 
@@ -167,11 +193,12 @@ def judge_request(
     instruction: str,
     intercept: dict[str, Any],
     *,
+    judge_context: dict[str, Any] | None = None,
     retries: int = 2,
 ) -> dict[str, Any]:
     """Run a single judge call. Returns dict with keys match/reason/judge_model/raw/error."""
     system = JUDGE_SYSTEM
-    user = _build_user_msg(instruction, intercept)
+    user = _build_user_msg(instruction, intercept, judge_context)
     api_type = model_cfg.get("api_type", "openai-completions")
 
     last_err: Exception | None = None
