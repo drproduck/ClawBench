@@ -22,8 +22,12 @@ def test_prepare_personal_info_writes_container_mount_resources(tmp_path: Path) 
         tmp_path,
     )
 
-    personal_info = json.loads((info_dir / "alex_green_personal_info.json").read_text())
-    email_credentials = json.loads((info_dir / "email_credentials.json").read_text())
+    personal_info = json.loads(
+        (info_dir / "alex_green_personal_info.json").read_text(encoding="utf-8")
+    )
+    email_credentials = json.loads(
+        (info_dir / "email_credentials.json").read_text(encoding="utf-8")
+    )
 
     assert personal_info["contact"]["email"] == "alex@example.test"
     assert "online_accounts" not in personal_info
@@ -40,7 +44,7 @@ def test_prepare_personal_info_writes_container_mount_resources(tmp_path: Path) 
 
 def test_extra_info_copy_and_instruction_are_host_side(tmp_path: Path) -> None:
     task_dir = ASSET_ROOT / "test-cases" / "v1" / "007-daily-life-food-instacart"
-    task = json.loads((task_dir / "task.json").read_text())
+    task = json.loads((task_dir / "task.json").read_bytes())
     my_info = tmp_path / "my-info"
     my_info.mkdir()
 
