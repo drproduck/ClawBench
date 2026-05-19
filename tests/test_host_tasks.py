@@ -49,7 +49,7 @@ def test_checked_task_json_files_parse_and_validate(suite: str) -> None:
 
     assert task_files, f"{suite} should expose readable task JSON files"
     for task_file in task_files:
-        task = json.loads(task_file.read_text())
+        task = json.loads(task_file.read_bytes())
         validated = validate_task_data(task, task_file)
         assert validated is task
 
