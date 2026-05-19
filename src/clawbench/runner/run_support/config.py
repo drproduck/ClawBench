@@ -39,6 +39,13 @@ IMAGE = harness_image(DEFAULT_HARNESS)
 
 
 def _detect_engine() -> str:
+    # Help output is host-only and should work on machines that have not
+    # installed Docker/Podman yet. Actual run paths still call this without
+    # help flags and fail fast if no engine is available.
+    if any(arg in {"-h", "--help"} for arg in sys.argv[1:]):
+        env = os.environ.get("CONTAINER_ENGINE", "").strip().lower()
+        return env if env in ("docker", "podman") else "docker"
+
     env = os.environ.get("CONTAINER_ENGINE", "").strip().lower()
     if env:
         if env not in ("docker", "podman"):
