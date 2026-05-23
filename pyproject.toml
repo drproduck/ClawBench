@@ -37,7 +37,7 @@ packages = ["src/clawbench"]
 "models/models.example.yaml" = "clawbench/_bundled/models/models.example.yaml"
 "models/model.schema.json" = "clawbench/_bundled/models/model.schema.json"
 "test-cases" = "clawbench/_bundled/test-cases"
-"static" = "static"
+"assets" = "assets"
 "README.zh-CN.md" = "README.zh-CN.md"
 "NOTICE" = "NOTICE"
 
@@ -52,7 +52,7 @@ include = [
     "/README.zh-CN.md",
     "/LICENSE",
     "/NOTICE",
-    "/static",
+    "/assets",
 ]
 exclude = [
     "/models/models.yaml",
