@@ -59,6 +59,7 @@ src/
     README.md
   harnesses/
     harnesses.yaml              # Central harness registry: images, Dockerfiles, scripts
+    harness.schema.json         # JSON Schema for harnesses.yaml
     base/
       Dockerfile.base            # Shared Chromium, Xvfb, noVNC, server, extension image
       entrypoint.sh              # Shared container startup logic

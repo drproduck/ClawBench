@@ -2,14 +2,18 @@
 
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 
 import pytest
+import yaml
+from jsonschema import Draft202012Validator
 
 from clawbench.runner.run_support.harness_registry import (
-    HARNESS_REGISTRY,
     AgentMessageSource,
+    HARNESS_REGISTRY,
+    HARNESS_REGISTRY_YAML,
     load_harness_registry,
 )
 
@@ -131,6 +135,17 @@ def test_harness_registry_matches_current_harness_contract() -> None:
         assert _agent_source_tuples(
             HARNESS_REGISTRY.harness_agent_message_sources[harness]
         ) == EXPECTED_AGENT_MESSAGE_SOURCES.get(harness, ())
+
+
+def test_harness_registry_matches_json_schema() -> None:
+    schema_path = HARNESS_REGISTRY_YAML.with_name("harness.schema.json")
+    schema = json.loads(schema_path.read_text())
+    registry = yaml.safe_load(HARNESS_REGISTRY_YAML.read_text())
+
+    validator = Draft202012Validator(schema)
+    errors = sorted(validator.iter_errors(registry), key=lambda item: list(item.path))
+
+    assert errors == []
 
 
 def test_harness_registry_tracks_all_dockerfile_harness_copies() -> None:
