@@ -8,11 +8,10 @@ from pathlib import Path
 import pytest
 
 from clawbench.runner.run_support.harness_registry import (
-    AgentMessageSource,
     HARNESS_REGISTRY,
+    AgentMessageSource,
     load_harness_registry,
 )
-
 
 EXPECTED_HARNESSES = (
     "openclaw",
@@ -108,19 +107,15 @@ def test_harness_registry_matches_current_harness_contract() -> None:
         assert HARNESS_REGISTRY.harness_setup_scripts[harness].is_file()
         assert HARNESS_REGISTRY.harness_run_scripts[harness].is_file()
         assert (
-            str(
-                HARNESS_REGISTRY.harness_setup_scripts[harness].relative_to(
-                    HARNESS_REGISTRY.base_dockerfile.parents[1]
-                )
-            )
+            HARNESS_REGISTRY.harness_setup_scripts[harness]
+            .relative_to(HARNESS_REGISTRY.base_dockerfile.parents[1])
+            .as_posix()
             == setup_script
         )
         assert (
-            str(
-                HARNESS_REGISTRY.harness_run_scripts[harness].relative_to(
-                    HARNESS_REGISTRY.base_dockerfile.parents[1]
-                )
-            )
+            HARNESS_REGISTRY.harness_run_scripts[harness]
+            .relative_to(HARNESS_REGISTRY.base_dockerfile.parents[1])
+            .as_posix()
             == run_script
         )
         assert all(
@@ -128,7 +123,9 @@ def test_harness_registry_matches_current_harness_contract() -> None:
             for extra_file in HARNESS_REGISTRY.harness_extra_files[harness]
         )
         assert tuple(
-            str(extra_file.relative_to(HARNESS_REGISTRY.base_dockerfile.parents[1]))
+            extra_file.relative_to(
+                HARNESS_REGISTRY.base_dockerfile.parents[1]
+            ).as_posix()
             for extra_file in HARNESS_REGISTRY.harness_extra_files[harness]
         ) == EXPECTED_EXTRA_FILES.get(harness, ())
         assert _agent_source_tuples(
