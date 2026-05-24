@@ -553,4 +553,5 @@ ENV EXTRA_LOAD_EXTENSIONS=/app/claude-in-chrome
 # --- Harness scripts --------------------------------------------------------
 COPY harnesses/claude-code-chrome-extension/setup-claude-code-chrome-extension.sh /setup-claude-code-chrome-extension.sh
 COPY harnesses/claude-code-chrome-extension/run-claude-code-chrome-extension.sh /run-harness.sh
-RUN chmod +x /setup-claude-code-chrome-extension.sh /run-harness.sh
+COPY harnesses/claude-code-chrome-extension/usage-emitter.py /usage-emitter.py
+RUN chmod +x /setup-claude-code-chrome-extension.sh /run-harness.sh /usage-emitter.py
