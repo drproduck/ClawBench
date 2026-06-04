@@ -1,0 +1,284 @@
+name: check-harness-build
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - "src/clawbench/runtime/**"
+      - ".github/workflows/check-harness-build.yml"
+  push:
+    branches: [ main ]
+    paths:
+      - "src/clawbench/runtime/**"
+      - ".github/workflows/check-harness-build.yml"
+  workflow_dispatch:
+
+jobs:
+  validate-and-select:
+    runs-on: ubuntu-latest
+    outputs:
+      count: ${{ steps.dockerfiles.outputs.count }}
+      matrix: ${{ steps.dockerfiles.outputs.matrix }}
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install harness registry validator
+        run: python -m pip install "jsonschema==4.26.0" "PyYAML==6.0.2"
+
+      - name: Validate harness registry
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          import yaml
+          from jsonschema import Draft202012Validator
+
+          harness_root = Path("src/clawbench/runtime/harnesses")
+          registry_path = harness_root / "harnesses.yaml"
+          schema_path = harness_root / "harness.schema.json"
+
+          schema = json.loads(schema_path.read_text())
+          registry = yaml.safe_load(registry_path.read_text())
+          validator = Draft202012Validator(schema)
+
+          errors = [
+              "/" + "/".join(str(part) for part in error.path) + f": {error.message}"
+              for error in sorted(validator.iter_errors(registry), key=lambda item: list(item.path))
+          ]
+          if errors:
+              print("Harness registry schema validation failed:")
+              print("\n".join(errors))
+              raise SystemExit(1)
+
+          sys.path.insert(0, str(Path("src")))
+          from clawbench.runner.run_support.harness_registry import load_harness_registry
+
+          load_harness_registry(registry_path)
+          print(f"Validated {registry_path} against {schema_path}")
+          PY
+
+      - name: Select harness Dockerfiles
+        id: dockerfiles
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          runtime_root="src/clawbench/runtime"
+          harness_root="${runtime_root}/harnesses"
+          base_dockerfile="${harness_root}/base/Dockerfile.base"
+
+          mapfile -t all_harness_dockerfiles < <(
+            find "${harness_root}" -mindepth 2 -maxdepth 2 -type f -name 'Dockerfile*' \
+              ! -path "${base_dockerfile}" \
+              | sort
+          )
+
+          build_all=false
+          changed_runtime_files=()
+          changed_dockerfiles=()
+
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            build_all=true
+          else
+            if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+              base_sha="${{ github.event.pull_request.base.sha }}"
+              head_sha="${{ github.event.pull_request.head.sha }}"
+            else
+              base_sha="${{ github.event.before }}"
+              head_sha="${{ github.sha }}"
+            fi
+
+            if [[ -z "${base_sha}" || "${base_sha}" =~ ^0+$ ]]; then
+              echo "Unable to determine base SHA for Dockerfile diff." >&2
+              exit 1
+            elif ! git cat-file -e "${base_sha}^{commit}" 2>/dev/null; then
+              echo "Base SHA ${base_sha} is not available in the checkout." >&2
+              exit 1
+            elif ! git cat-file -e "${head_sha}^{commit}" 2>/dev/null; then
+              echo "Head SHA ${head_sha} is not available in the checkout." >&2
+              exit 1
+            else
+              mapfile -t changed_runtime_files < <(
+                git diff --name-only --diff-filter=ACMRT "${base_sha}" "${head_sha}" -- "${runtime_root}" \
+                  | sort
+              )
+
+              if (( ${#changed_runtime_files[@]} == 0 )); then
+                build_all=true
+              fi
+
+              for path in "${changed_runtime_files[@]}"; do
+                case "${path}" in
+                  "${harness_root}/base/"*|"${runtime_root}/chrome-extension/"*|"${runtime_root}/extension-server/"*|"${runtime_root}/shared/"*)
+                    build_all=true
+                    break
+                    ;;
+                  "${harness_root}/"*)
+                    harness="${path#"${harness_root}/"}"
+                    harness="${harness%%/*}"
+                    dockerfile="${harness_root}/${harness}/Dockerfile.${harness}"
+                    if [[ -f "${dockerfile}" ]]; then
+                      changed_dockerfiles+=("${dockerfile}")
+                    fi
+                    ;;
+                esac
+              done
+            fi
+          fi
+
+          if [[ "${build_all}" == "true" ]]; then
+            selected_dockerfiles=("${all_harness_dockerfiles[@]}")
+          else
+            selected_dockerfiles=()
+            for dockerfile in "${changed_dockerfiles[@]}"; do
+              if [[ "${dockerfile}" != "${base_dockerfile}" && -f "${dockerfile}" ]]; then
+                selected_dockerfiles+=("${dockerfile}")
+              fi
+            done
+            if (( ${#selected_dockerfiles[@]} > 0 )); then
+              mapfile -t selected_dockerfiles < <(printf '%s\n' "${selected_dockerfiles[@]}" | sort -u)
+            fi
+          fi
+
+          matrix_json="$(
+            printf '%s\n' "${selected_dockerfiles[@]}" \
+              | python -c 'import json, pathlib, sys; dockerfiles=[line.strip() for line in sys.stdin if line.strip()]; print(json.dumps({"include":[{"harness":pathlib.Path(path).parent.name,"dockerfile":path,"image":"clawbench-" + pathlib.Path(path).parent.name} for path in dockerfiles]}, separators=(",", ":")))'
+          )"
+
+          {
+            echo "matrix=${matrix_json}"
+            echo "count=${#selected_dockerfiles[@]}"
+          } >> "${GITHUB_OUTPUT}"
+
+          echo "Selected ${#selected_dockerfiles[@]} harness Dockerfile(s):"
+          printf '  %s\n' "${selected_dockerfiles[@]}"
+          echo "::notice title=Harness build plan::Selected ${#selected_dockerfiles[@]} harness Dockerfile(s)"
+
+          {
+            echo "## Harness build plan"
+            echo
+            echo "- Event: \`${{ github.event_name }}\`"
+            echo "- Selection mode: \`$([[ "${build_all}" == "true" ]] && echo all || echo changed)\`"
+            echo "- Base image: \`clawbench-base\`, \`clawbench-base:amd64\`"
+            echo "- Harness images: \`${#selected_dockerfiles[@]}\`"
+            echo
+            echo "| Image | Dockerfile |"
+            echo "| --- | --- |"
+            echo "| \`clawbench-base\`, \`clawbench-base:amd64\` | \`${base_dockerfile}\` |"
+            for dockerfile in "${selected_dockerfiles[@]}"; do
+              harness="$(basename "$(dirname "${dockerfile}")")"
+              echo "| \`clawbench-${harness}\` | \`${dockerfile}\` |"
+            done
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  build-base:
+    runs-on: ubuntu-latest
+    needs: validate-and-select
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Docker
+        uses: docker/setup-docker-action@v5.1.0
+        with:
+          daemon-config: |
+            {
+              "features": {
+                "containerd-snapshotter": true
+              }
+            }
+
+      - name: Build base Docker image
+        uses: docker/build-push-action@v7
+        with:
+          context: src/clawbench/runtime
+          file: src/clawbench/runtime/harnesses/base/Dockerfile.base
+          tags: |
+            clawbench-base
+            clawbench-base:amd64
+          load: true
+          provenance: false
+          cache-from: type=gha,scope=base
+          cache-to: type=gha,mode=max,scope=base,ignore-error=true
+
+      - name: Summarize base build
+        shell: bash
+        run: |
+          {
+            echo "## Harness build results"
+            echo
+            echo "| Image | Status |"
+            echo "| --- | --- |"
+            echo "| \`clawbench-base\`, \`clawbench-base:amd64\` | Passed |"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  build-harness:
+    runs-on: ubuntu-latest
+    needs:
+      - validate-and-select
+      - build-base
+    if: needs.validate-and-select.outputs.count != '0'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.validate-and-select.outputs.matrix) }}
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Docker
+        uses: docker/setup-docker-action@v5.1.0
+        with:
+          daemon-config: |
+            {
+              "features": {
+                "containerd-snapshotter": true
+              }
+            }
+
+      - name: Load base Docker image
+        uses: docker/build-push-action@v7
+        with:
+          context: src/clawbench/runtime
+          file: src/clawbench/runtime/harnesses/base/Dockerfile.base
+          tags: |
+            clawbench-base
+            clawbench-base:amd64
+          load: true
+          provenance: false
+          cache-from: type=gha,scope=base
+
+      - name: Build harness Docker image
+        uses: docker/build-push-action@v7
+        with:
+          context: src/clawbench/runtime
+          file: ${{ matrix.dockerfile }}
+          tags: ${{ matrix.image }}
+          load: true
+          provenance: false
+          cache-from: |
+            type=gha,scope=base
+            type=gha,scope=${{ matrix.harness }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.harness }},ignore-error=true
+
+      - name: Summarize harness build
+        shell: bash
+        run: |
+          {
+            echo "## Harness build results"
+            echo
+            echo "| Image | Status |"
+            echo "| --- | --- |"
+            echo "| \`${{ matrix.image }}\` | Passed |"
+          } >> "${GITHUB_STEP_SUMMARY}"

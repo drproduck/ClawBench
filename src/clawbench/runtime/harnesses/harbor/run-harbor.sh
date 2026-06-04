@@ -156,6 +156,11 @@ PYEOF
   fi
 fi
 
+# Emit the token-usage artifact from the promoted transcript (best-effort;
+# matches the pi/hermes harnesses which run /usage-emitter.py post-run).
+: > /data/usage.jsonl
+python3 /usage-emitter.py --harness harbor --input /data/agent-messages.jsonl --output /data/usage.jsonl || true
+
 cp /tmp/harbor-stdout.log /data/agent-stdout.log 2>/dev/null || true
 cp /tmp/harbor-stderr.log /data/agent-stderr.log 2>/dev/null || true
 

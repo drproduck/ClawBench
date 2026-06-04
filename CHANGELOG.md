@@ -6,6 +6,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.5.0] - 2026-05-24
+### Added
+- Added display of live token cost estimation during the run.
+
+### Fixed
+- Fixed the issue that Claude Code Chrome Extension harness cannot be build due to upstream changes and pinned to a fixed version.
+- Fixed the issue that in TUI the color highlight is not moving properly with the selection arrow.
+
+## [0.4.1] - 2026-05-23
+### Fixed
+- Fixed several mismatches in task definitions and the provided extra information.
+
+## [0.4.0] - 2026-05-22
+### Added
+- Added scripts for rescoring and reproducing the benchmark results based on disclosed trajectories.
+
 ## [0.3.3] - 2026-05-19
 ### Changed
 - More data are stored in the `run-meta.json` for better post-hoc analysis and reproducibility, including the hash of the configs, runtime info, and flags used.

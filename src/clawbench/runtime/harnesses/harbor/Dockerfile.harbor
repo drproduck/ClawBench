@@ -36,4 +36,5 @@ RUN printf '#!/bin/sh\nexec agent-browser --cdp 9222 "$@"\n' > /usr/local/bin/ab
 COPY harnesses/harbor/harbor_driver.py /harbor_driver.py
 COPY harnesses/harbor/setup-harbor.sh /setup-harbor.sh
 COPY harnesses/harbor/run-harbor.sh /run-harness.sh
-RUN chmod +x /harbor_driver.py /setup-harbor.sh /run-harness.sh
+COPY harnesses/harbor/usage-emitter.py /usage-emitter.py
+RUN chmod +x /harbor_driver.py /setup-harbor.sh /run-harness.sh /usage-emitter.py

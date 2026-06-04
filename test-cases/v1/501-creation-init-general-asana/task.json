@@ -27,7 +27,7 @@
   "extra_info": [
     {
       "path": "extra_info/project_description.json",
-      "description": "Project description with scope, budget, and requirements"
+      "description": "Portfolio and sub-project details"
     }
   ]
 }

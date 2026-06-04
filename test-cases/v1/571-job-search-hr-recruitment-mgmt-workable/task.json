@@ -24,7 +24,7 @@
   "extra_info": [
     {
       "path": "extra_info/listing_details.json",
-      "description": "Sublet listing details including description, amenities, and photos"
+      "description": "Job position details to publish"
     }
   ]
 }

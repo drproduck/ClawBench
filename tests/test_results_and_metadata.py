@@ -36,6 +36,7 @@ def test_classify_run_success_from_synthetic_output(tmp_path: Path) -> None:
     assert result["failure_category"] is None
     assert result["infra_failure"] is False
     assert result["metrics"]["actions"] == 1
+    assert "data/usage.jsonl" not in result["metrics"]["missing_files"]
 
 
 def test_classify_run_flags_missing_recording(tmp_path: Path) -> None:
@@ -69,6 +70,56 @@ def test_classify_run_detects_api_or_credit_evidence(tmp_path: Path) -> None:
     assert "429" in result["metrics"]["api_or_credit_evidence"]
 
 
+def test_print_results_includes_usage_summary(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    from clawbench.runner.run_support import results
+
+    data = tmp_path / "data"
+    data.mkdir()
+    _write_jsonl(data / "actions.jsonl", [{"type": "click", "url": "https://e.test"}])
+    _write_jsonl(data / "requests.jsonl", [{"url": "https://e.test"}])
+    _write_jsonl(data / "agent-messages.jsonl", [])
+    (data / "interception.json").write_text(
+        json.dumps({"intercepted": True, "stop_reason": "eval_matched"})
+    )
+    monkeypatch.setattr(
+        results,
+        "summarize_usage_file",
+        lambda _path, model_cfg=None: {
+            "status": "estimated",
+            "total_tokens": 123,
+            "input_tokens": 100,
+            "output_tokens": 23,
+            "cache_read_tokens": 0,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 0,
+            "estimated_cost_usd": 0.0042,
+            "matched_openrouter_model_id": "provider/model",
+        },
+    )
+
+    assert results.print_results(tmp_path) is True
+
+    out = capsys.readouterr().out
+    assert "Usage: 123 total" in out
+    assert "estimated cost $0.004200" in out
+
+
+def test_remove_transient_usage_artifact(tmp_path: Path) -> None:
+    from clawbench.runner.run_support.results import remove_transient_usage_artifact
+
+    usage = tmp_path / "data" / "usage.jsonl"
+    usage.parent.mkdir()
+    usage.write_text("{}\n")
+
+    remove_transient_usage_artifact(tmp_path)
+
+    assert not usage.exists()
+
+
 def test_run_metadata_redacts_model_and_judge_secrets(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -100,7 +151,14 @@ def test_run_metadata_redacts_model_and_judge_secrets(
         "infra_failure": False,
         "adjusted_eligible": True,
         "infra_flags": [],
-        "metrics": {},
+        "metrics": {
+            "usage": {
+                "status": "estimated",
+                "total_tokens": 123,
+                "estimated_cost_usd": 0.0042,
+                "matched_openrouter_model_id": "provider/model",
+            }
+        },
     }
     model_cfg = {
         "model": "provider/model",
@@ -141,3 +199,5 @@ def test_run_metadata_redacts_model_and_judge_secrets(
     assert "hidden" not in dumped
     assert meta["model_config"]["api_key_count"] == 2
     assert meta["judge_config"]["api_key_count"] == 2
+    assert meta["usage"]["estimated_cost_usd"] == 0.0042
+    assert meta["run_metrics"]["usage"]["total_tokens"] == 123
