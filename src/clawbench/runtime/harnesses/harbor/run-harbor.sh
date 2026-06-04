@@ -28,6 +28,20 @@ for i in $(seq 1 30); do
   sleep 1
 done
 
+# Warm up the agent-browser daemon and confirm it attaches to the shared Chrome
+# over CDP, so Terminus' very first `ab` command is fast and does not appear to
+# fail while the daemon is still starting. A failure here is fatal: the agent
+# cannot act without the browser bridge.
+echo "Warming up agent-browser (CDP bridge to shared Chrome)..."
+if ab open "about:blank" > /tmp/harbor-ab-warmup.log 2>&1; then
+  echo "agent-browser attached to CDP $(ab get url 2>/dev/null || true)"
+else
+  echo "ERROR: agent-browser could not attach to Chrome over CDP; see warmup log:"
+  cat /tmp/harbor-ab-warmup.log
+  echo "agent_browser_cdp_failed" > /data/.stop-reason
+  exit 1
+fi
+
 cd "$WORKSPACE"
 echo "Starting Harbor agent (Terminus 2, model=${MODEL_NAME})..."
 # Harbor lives in its own Python 3.12 venv (base image is 3.11); fall back to

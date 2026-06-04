@@ -233,32 +233,44 @@ def _reasoning_effort() -> str | None:
 def _browser_instruction(task: str) -> str:
     """Prefix the task with a guide teaching Terminus to drive the CDP browser.
 
-    Terminus only knows how to run shell commands. ``agent-browser`` is an
-    already-installed CLI attached to the shared ClawBench Chrome over CDP, so
-    we teach it the exact subcommands to use and forbid the desktop/headless
-    paths that would launch a *second* browser the recorder cannot see.
+    Terminus only knows how to run shell commands. The ``ab`` wrapper (installed
+    by the harness) is the ``agent-browser`` CLI pinned to ``--cdp 9222``, so it
+    always attaches to the shared ClawBench Chrome over the Chrome DevTools
+    Protocol rather than launching a second browser the recorder cannot see.
+    The command names below match agent-browser exactly (``open``/``snapshot``/
+    ``click``/``fill``), so the model does not have to guess.
     """
     return f"""You are completing a web-browsing task. You do NOT have a desktop or \
 mouse; you act ONLY by running shell commands in this terminal.
 
 A Chromium browser is already running and visible to the grader. Control it with \
-the `agent-browser` CLI, which is attached to that exact browser over the Chrome \
-DevTools Protocol at {CDP_URL}. Run `agent-browser --help` first to see the \
-available subcommands, then use them to navigate, read the page, click, type, and \
-submit. Typical flow:
+the `ab` command (the agent-browser CLI, already attached to that exact browser \
+over the Chrome DevTools Protocol at {CDP_URL}). Run `ab --help` to see all \
+subcommands. Typical flow:
 
-  agent-browser navigate "https://example.com"
-  agent-browser snapshot          # read the current page (accessibility tree)
-  agent-browser click <ref>       # click an element from the snapshot
-  agent-browser type <ref> "text" # type into a field
-  agent-browser screenshot        # optional visual check
+  ab open "https://example.com"   # navigate to a URL
+  ab snapshot -i                  # read interactive elements with @refs
+  ab click @e5                    # click an element by its @ref from the snapshot
+  ab fill @e3 "text"              # clear and type into a field
+  ab press Enter                  # press a key to submit
+  ab get text @e1                 # read an element's text
+  ab screenshot                   # optional visual check
 
 IMPORTANT RULES:
-- ALWAYS act through `agent-browser` so the grader sees your actions. Do not \
-launch your own browser, curl/wget the page, or install other automation tools.
-- Re-run `agent-browser snapshot` after each navigation or click to get fresh \
-element references before acting.
-- When the task is complete, stop and give a short final summary.
+- The `ab` command is ALREADY connected to the shared Chrome over CDP. Do NOT \
+add a --cdp flag, do NOT run `agent-browser install`, do NOT launch your own \
+browser, and do NOT curl/wget pages.
+- ALWAYS act through the `ab` command so the grader sees your actions.
+- Use a duration of 2-3 seconds after `ab open`/`ab click` so the page can load \
+before your next command. If a command's output looks empty or incomplete, run \
+`ab snapshot -i` again to re-read the page rather than assuming it failed.
+- Re-run `ab snapshot -i` after each `open`/`click` to get fresh @refs before \
+acting; @refs change when the page changes.
+- You can chain steps in one command with &&, e.g. \
+`ab fill @e1 "a@b.com" && ab fill @e2 "pw" && ab click @e3`.
+- Do NOT mark the task complete until you have actually performed the required \
+browser actions and verified the result with `ab snapshot -i` or `ab get text`.
+- When the task is genuinely complete, stop and give a short final summary.
 
 TASK:
 {task}
@@ -281,8 +293,10 @@ async def _run_agent(litellm_model, api_base, instruction, reasoning_effort) -> 
         tmux_pane_width=200,
         tmux_pane_height=50,
         record_terminal_session=False,
-        # Pass the shared browser CDP endpoint to anything the shell spawns.
-        extra_env={"BROWSER_CDP_URL": CDP_URL, "PLAYWRIGHT_CDP_URL": CDP_URL},
+        # The `ab` wrapper already pins agent-browser to the shared Chrome with
+        # --cdp 9222. Do NOT also set AGENT_BROWSER_AUTO_CONNECT: agent-browser
+        # rejects --cdp and --auto-connect used together.
+        extra_env={"BROWSER_CDP_URL": CDP_URL},
     )
 
     context = AgentContext()

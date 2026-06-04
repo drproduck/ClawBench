@@ -27,6 +27,12 @@ RUN uv venv --python 3.12 "$HARBOR_VENV" \
 # control the shared ClawBench Chrome (same tool the hermes harness uses).
 RUN PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm install -g agent-browser@0.26.0
 
+# `ab` is a thin wrapper that pins agent-browser to the shared Chrome's CDP port
+# (9222) so Terminus can drive it with short, hard-to-misuse commands and can
+# never accidentally launch a second, unrecorded browser.
+RUN printf '#!/bin/sh\nexec agent-browser --cdp 9222 "$@"\n' > /usr/local/bin/ab \
+    && chmod +x /usr/local/bin/ab
+
 COPY harnesses/harbor/harbor_driver.py /harbor_driver.py
 COPY harnesses/harbor/setup-harbor.sh /setup-harbor.sh
 COPY harnesses/harbor/run-harbor.sh /run-harness.sh
