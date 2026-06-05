@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.6.0] - 2026-06-04
+### Added
+- Added support for the [Harbor](https://github.com/harbor-framework/harbor) framework.
+
 ## [0.5.0] - 2026-05-24
 ### Added
 - Added display of live token cost estimation during the run.
