@@ -27,6 +27,7 @@ EXPECTED_HARNESSES = (
     "claw-code",
     "hermes",
     "pi",
+    "harbor",
 )
 
 EXPECTED_SCRIPTS = {
@@ -48,6 +49,7 @@ EXPECTED_EXTRA_FILES = {
     "claw-code": ("claw-code/claw-code-ndjson.patch.py",),
     "hermes": ("hermes/hermes-capture.py",),
     "pi": ("pi/pi-usage-logger.py",),
+    "harbor": ("harbor/harbor_driver.py",),
 }
 
 EXPECTED_USAGE_EMITTERS = {
@@ -80,6 +82,7 @@ EXPECTED_AGENT_MESSAGE_SOURCES = {
         ("file", "/data/agent-messages.jsonl"),
         ("file", "/data/agent-messages.raw.jsonl"),
     ),
+    "harbor": (("file", "/data/agent-messages.jsonl"),),
 }
 
 
