@@ -21,7 +21,7 @@ A `setup.sh` script is provided to load the extension into Chrome. Linux and mac
 
 ## Event Capture
 
-Browser event capture now lives in `src/clawbench/runtime/extension-server/server.py`. The server injects capture listeners through CDP and preserves the historical action schema:
+Browser event capture now lives in `src/clawbench/runtime/runtime-server/server.py`. The server injects capture listeners through CDP and preserves the historical action schema:
 
 `click`, `keydown`, `keyup`, `input`, `scroll`, `change`, `submit`, plus a synthetic `pageLoad` on each navigation.
 

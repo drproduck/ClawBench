@@ -42,18 +42,18 @@ All data is written to the directory specified by `CLAWBENCH_DATA_DIR` (default:
 
 ### Running Locally
 
-The extension server normally runs only inside the benchmark container. For
+The runtime server normally runs only inside the benchmark container. For
 debugging the server by itself, use its local uv project:
 
 ```bash
-cd src/clawbench/runtime/extension-server
+cd src/clawbench/runtime/runtime-server
 CLAWBENCH_DATA_DIR=./data DISPLAY=:99 uv run --frozen uvicorn server:app --host 0.0.0.0 --port 7878
 ```
 
 ### Dependencies
 
-The extension server is container-only and has its own uv project in
-`src/clawbench/runtime/extension-server/`:
+The runtime server is container-only and has its own uv project in
+`src/clawbench/runtime/runtime-server/`:
 - `fastapi` — web framework
 - `uvicorn` — ASGI server
 - `websocket-client` — WebSocket client for CDP communication

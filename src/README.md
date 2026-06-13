@@ -45,7 +45,7 @@ src/
     utils/
       paths.py                   # Shared PROJECT_ROOT / HARNESS_ROOT discovery
       hf_upload.py               # Optional HuggingFace upload helpers
-  extension-server/
+  runtime-server/
     server.py                    # CDP instrumentation server for actions, screenshots, requests, recording
     pyproject.toml               # Container-only uv project
     uv.lock
