@@ -1,0 +1,88 @@
+name: Build ClawBench OpenClaw Image
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Extra image tag to publish"
+        required: true
+        default: "openclaw-smoke"
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-openclaw:
+    runs-on: ubuntu-latest
+    env:
+      RUNTIME_CONTEXT: src/clawbench/runtime
+      BASE_DOCKERFILE: src/clawbench/runtime/harnesses/base/Dockerfile.base
+      OPENCLAW_DOCKERFILE: src/clawbench/runtime/harnesses/openclaw/Dockerfile.openclaw
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set image name
+        shell: bash
+        run: |
+          set -euo pipefail
+          owner_lc="$(printf '%s' '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')"
+          echo "IMAGE=ghcr.io/${owner_lc}/clawbench-openclaw" >> "$GITHUB_ENV"
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build base image for local harness build
+        uses: docker/build-push-action@v7
+        with:
+          context: ${{ env.RUNTIME_CONTEXT }}
+          file: ${{ env.BASE_DOCKERFILE }}
+          tags: |
+            clawbench-base
+            clawbench-base:amd64
+          load: true
+          provenance: false
+          cache-from: type=gha,scope=clawbench-base
+          cache-to: type=gha,mode=max,scope=clawbench-base,ignore-error=true
+
+      - name: Build and push OpenClaw image
+        uses: docker/build-push-action@v7
+        with:
+          context: ${{ env.RUNTIME_CONTEXT }}
+          file: ${{ env.OPENCLAW_DOCKERFILE }}
+          tags: |
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ inputs.image_tag }}
+            ${{ env.IMAGE }}:${{ github.sha }}
+          push: true
+          provenance: false
+          cache-from: |
+            type=gha,scope=clawbench-base
+            type=gha,scope=clawbench-openclaw
+          cache-to: type=gha,mode=max,scope=clawbench-openclaw,ignore-error=true
+
+      - name: Print image references
+        shell: bash
+        run: |
+          {
+            echo "## Published images"
+            echo
+            echo "- \`${IMAGE}:latest\`"
+            echo "- \`${IMAGE}:${{ inputs.image_tag }}\`"
+            echo "- \`${IMAGE}:${{ github.sha }}\`"
+            echo
+            echo "Cluster/Pyxis form:"
+            echo
+            echo "\`\`\`bash"
+            echo "srun --container-image=docker://${IMAGE}:${{ inputs.image_tag }} /entrypoint.sh"
+            echo "\`\`\`"
+          } >> "$GITHUB_STEP_SUMMARY"
