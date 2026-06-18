@@ -38,37 +38,34 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Build base image
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker build \
+            -f "$BASE_DOCKERFILE" \
+            -t clawbench-base \
+            -t clawbench-base:amd64 \
+            "$RUNTIME_CONTEXT"
 
-      - name: Build base image for local harness build
-        uses: docker/build-push-action@v7
-        with:
-          context: ${{ env.RUNTIME_CONTEXT }}
-          file: ${{ env.BASE_DOCKERFILE }}
-          tags: |
-            clawbench-base
-            clawbench-base:amd64
-          load: true
-          provenance: false
-          cache-from: type=gha,scope=clawbench-base
-          cache-to: type=gha,mode=max,scope=clawbench-base,ignore-error=true
+      - name: Build OpenClaw image
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker build \
+            -f "$OPENCLAW_DOCKERFILE" \
+            -t "$IMAGE:latest" \
+            -t "$IMAGE:${{ inputs.image_tag }}" \
+            -t "$IMAGE:${{ github.sha }}" \
+            "$RUNTIME_CONTEXT"
 
-      - name: Build and push OpenClaw image
-        uses: docker/build-push-action@v7
-        with:
-          context: ${{ env.RUNTIME_CONTEXT }}
-          file: ${{ env.OPENCLAW_DOCKERFILE }}
-          tags: |
-            ${{ env.IMAGE }}:latest
-            ${{ env.IMAGE }}:${{ inputs.image_tag }}
-            ${{ env.IMAGE }}:${{ github.sha }}
-          push: true
-          provenance: false
-          cache-from: |
-            type=gha,scope=clawbench-base
-            type=gha,scope=clawbench-openclaw
-          cache-to: type=gha,mode=max,scope=clawbench-openclaw,ignore-error=true
+      - name: Push OpenClaw image
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker push "$IMAGE:latest"
+          docker push "$IMAGE:${{ inputs.image_tag }}"
+          docker push "$IMAGE:${{ github.sha }}"
 
       - name: Print image references
         shell: bash
